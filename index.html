@@ -2,33 +2,383 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jump to the Bell</title>
   <style>
-    /* Reset margins and eliminate parent scrollbars completely */
-    html, body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden; /* Only the iframe interior handles scrolling */
-      background-color: #000; /* Matches dark backgrounds or prevents white flash */
+    :root {
+      --bg-dark: #0f1115;
+      --card-bg: #181b21;
+      --card-border: #282d37;
+      --text-main: #f0f3f6;
+      --text-muted: #8b949e;
+      --accent-red: #e50914;
+      --accent-hover: #f40612;
+      --btn-bg: #222731;
+      --btn-hover: #313846;
     }
 
-    /* Seamless full-viewport frame */
-    iframe {
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      padding: 24px 16px 80px;
+      min-height: 100vh;
+      overflow-y: auto;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    header h1 {
+      font-size: 2rem;
+      letter-spacing: -0.5px;
+      color: #fff;
+    }
+
+    header p {
+      color: var(--text-muted);
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+
+    /* Controls Bar */
+    .controls {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+      background: var(--card-bg);
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+    }
+
+    @media (max-width: 650px) {
+      .controls {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    input, select {
+      background: #0f1115;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent-red);
+    }
+
+    /* Status & Counts */
+    .meta-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* Match List Grid */
+    .match-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .match-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .match-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .match-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.3;
+    }
+
+    .event-badge {
+      background: #252b37;
+      color: #e2e8f0;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      font-weight: 500;
+      border: 1px solid #363d4e;
+    }
+
+    .action-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: background 0.15s ease;
+      color: #fff;
+    }
+
+    .btn-action {
+      background: var(--accent-red);
+    }
+
+    .btn-action:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-subtle {
+      background: var(--btn-bg);
+      color: #cbd5e1;
+      border: 1px solid var(--card-border);
+    }
+
+    .btn-subtle:hover {
+      background: var(--btn-hover);
+      color: #fff;
+    }
+
+    /* Back To Top Button */
+    #back-to-top {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--accent-red);
+      color: #fff;
       border: none;
-      width: 100%;
-      height: 100%;
-      display: block;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      font-size: 1.2rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+      z-index: 100;
+    }
+
+    #loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
     }
   </style>
 </head>
 <body>
-  <iframe 
-    src="https://script.google.com/macros/s/AKfycbySOYPZwsTjvYCepmcz_6fulUNcz7ysyy-4YsQ4vDxe8qzzhklI-eIY7RlsTV4T__7i0A/exec" 
-    allow="clipboard-write"
-    loading="lazy">
-  </iframe>
+
+  <div class="container">
+    <header>
+      <h1>Jump to the Bell</h1>
+      <p>Direct timecoded links to WWE match bells, intros, and entrances</p>
+    </header>
+
+    <!-- Filter Controls -->
+    <div class="controls">
+      <input type="text" id="searchInput" placeholder="Search wrestlers, matches, or stipulations..." />
+      <select id="eventFilter">
+        <option value="">All Events</option>
+      </select>
+      <select id="yearFilter">
+        <option value="">All Years</option>
+      </select>
+    </div>
+
+    <div class="meta-bar">
+      <span id="matchCount">Loading matches...</span>
+    </div>
+
+    <!-- Match Output -->
+    <div id="loading">Loading database...</div>
+    <div class="match-list" id="matchList"></div>
+  </div>
+
+  <button id="back-to-top" title="Back to top">↑</button>
+
+  <script>
+    // 1. YOUR APPS SCRIPT URL HERE
+    const API_URL = 'YOUR_APPS_SCRIPT_EXEC_URL_HERE';
+
+    let allMatches = [];
+
+    // 2. Fetch Data from the Apps Script API
+    async function init() {
+      try {
+        const response = await fetch(API_URL);
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          allMatches = result.data;
+          document.getElementById('loading').style.display = 'none';
+          populateFilters(allMatches);
+          renderMatches(allMatches);
+        } else {
+          document.getElementById('loading').textContent = 'Failed to load matches: ' + result.message;
+        }
+      } catch (err) {
+        document.getElementById('loading').textContent = 'Network error fetching matches.';
+        console.error(err);
+      }
+    }
+
+    // 3. Dynamically Populate Year and Event Dropdowns
+    function populateFilters(data) {
+      const yearFilter = document.getElementById('yearFilter');
+      const eventFilter = document.getElementById('eventFilter');
+
+      const years = new Set();
+      const events = new Set();
+
+      data.forEach(item => {
+        if (item.Year) years.add(String(item.Year).trim());
+        if (item.Event) {
+          // Normalize base event name (e.g., strips year/numbers for generic grouping if needed)
+          events.add(String(item.Event).trim());
+        }
+      });
+
+      // Populate Years (Sorted descending)
+      Array.from(years)
+        .sort((a, b) => Number(b) - Number(a))
+        .forEach(year => {
+          if (!year) return;
+          const opt = document.createElement('option');
+          opt.value = year;
+          opt.textContent = year;
+          yearFilter.appendChild(opt);
+        });
+
+      // Populate Events (Sorted alphabetically)
+      Array.from(events)
+        .sort((a, b) => a.localeCompare(b))
+        .forEach(ev => {
+          if (!ev) return;
+          const opt = document.createElement('option');
+          opt.value = ev;
+          opt.textContent = ev;
+          eventFilter.appendChild(opt);
+        });
+
+      // Event listeners
+      document.getElementById('searchInput').addEventListener('input', applyFilters);
+      yearFilter.addEventListener('change', applyFilters);
+      eventFilter.addEventListener('change', applyFilters);
+    }
+
+    // 4. Filtering Logic
+    function applyFilters() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const selectedYear = document.getElementById('yearFilter').value;
+      const selectedEvent = document.getElementById('eventFilter').value;
+
+      const filtered = allMatches.filter(item => {
+        const matchesQuery = !query || 
+          (item.Match && String(item.Match).toLowerCase().includes(query)) ||
+          (item.Event && String(item.Event).toLowerCase().includes(query));
+
+        const matchesYear = !selectedYear || String(item.Year).trim() === selectedYear;
+        const matchesEvent = !selectedEvent || String(item.Event).trim() === selectedEvent;
+
+        return matchesQuery && matchesYear && matchesEvent;
+      });
+
+      renderMatches(filtered);
+    }
+
+    // 5. Render Output Cards
+    function renderMatches(list) {
+      const container = document.getElementById('matchList');
+      const countEl = document.getElementById('matchCount');
+      
+      countEl.textContent = `Showing ${list.length} matches`;
+      container.innerHTML = '';
+
+      if (list.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#8b949e; padding: 20px;">No matches found matching your filters.</p>';
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+
+      list.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'match-card';
+
+        const actionLink = item['ACTION LINK'] || '';
+        const introLink = item['INTRO LINK'] || '';
+        const entranceLink = item['ENTRANCE LINK'] || '';
+
+        card.innerHTML = `
+          <div class="match-header">
+            <div class="match-title">${item.Match || 'Untitled Match'}</div>
+            <div class="event-badge">${item.Event || ''} ${item.Year ? `(${item.Year})` : ''}</div>
+          </div>
+          <div class="action-links">
+            ${actionLink ? `<a href="${actionLink}" target="_blank" rel="noopener" class="btn btn-action">▶ Watch Action (${item['ACTION TIME'] || 'Bell'})</a>` : ''}
+            ${entranceLink ? `<a href="${entranceLink}" target="_blank" rel="noopener" class="btn btn-subtle">Entrance (${item['ENTRANCE TIME'] || 'Jump'})</a>` : ''}
+            ${introLink ? `<a href="${introLink}" target="_blank" rel="noopener" class="btn btn-subtle">Promo / Intro (${item['INTRO TIME'] || 'Jump'})</a>` : ''}
+          </div>
+        `;
+        fragment.appendChild(card);
+      });
+
+      container.appendChild(fragment);
+    }
+
+    // 6. Native Back to Top Scroll Listener
+    const backToTopBtn = document.getElementById('back-to-top');
+
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 300) {
+        backToTopBtn.style.display = 'block';
+      } else {
+        backToTopBtn.style.display = 'none';
+      }
+    });
+
+    backToTopBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    init();
+  </script>
 </body>
 </html>
