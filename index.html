@@ -235,29 +235,37 @@
 
   <script>
     // 1. YOUR APPS SCRIPT URL HERE
-    const API_URL = 'https://script.google.com/macros/s/AKfycbySOYPZwsTjvYCepmcz_6fulUNcz7ysyy-4YsQ4vDxe8qzzhklI-eIY7RlsTV4T__7i0A/exec';
+    const API_URL = 'https://script.google.com/macros/s/AKfycbySOYPZwsTjvYCepmcz_6fulUNcz7ysyy-4YsQ4vDxe8qzzhklI-eIY7RlsTV4T__7i0A/exec'.trim();
 
     let allMatches = [];
 
     // 2. Fetch Data from the Apps Script API
     async function init() {
-      try {
-        const response = await fetch(API_URL);
-        const result = await response.json();
+  try {
+    const response = await fetch(API_URL, {
+      method: 'GET',
+      redirect: 'follow'
+    });
 
-        if (result.status === 'success') {
-          allMatches = result.data;
-          document.getElementById('loading').style.display = 'none';
-          populateFilters(allMatches);
-          renderMatches(allMatches);
-        } else {
-          document.getElementById('loading').textContent = 'Failed to load matches: ' + result.message;
-        }
-      } catch (err) {
-        document.getElementById('loading').textContent = 'Network error fetching matches.';
-        console.error(err);
-      }
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const result = await response.json();
+
+    if (result.status === 'success') {
+      allMatches = result.data;
+      document.getElementById('loading').style.display = 'none';
+      populateFilters(allMatches);
+      renderMatches(allMatches);
+    } else {
+      document.getElementById('loading').textContent = 'Failed to load matches: ' + result.message;
+    }
+  } catch (err) {
+    document.getElementById('loading').textContent = 'Network error fetching matches: ' + err.message;
+    console.error('Detailed fetch error:', err);
+  }
+}
 
     // 3. Dynamically Populate Year and Event Dropdowns
     function populateFilters(data) {
